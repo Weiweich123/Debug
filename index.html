@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Debug 🐛</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsfeat@latest/build/jsfeat-min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="./config.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #102a2e;
+        --sea: #2a9d8f;
+        --mint: #8ae1d1;
+        --sun: #ffd36e;
+        --coral: #ff7a59;
+        --cream: #fff6e6;
+        --storm: #0f3d3e;
+      }
+
+      body {
+        font-family: "Space Grotesk", "Noto Sans TC", sans-serif;
+      }
+
+      .glass {
+        background: rgba(255, 255, 255, 0.75);
+        backdrop-filter: blur(12px);
+      }
+
+      .bg-blob {
+        position: absolute;
+        border-radius: 9999px;
+        filter: blur(46px);
+        opacity: 0.65;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-6px);
+        }
+      }
+
+      @keyframes fadeUp {
+        0% {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .floaty {
+        animation: float 6s ease-in-out infinite;
+      }
+
+      .reveal {
+        animation: fadeUp 0.7s ease both;
+      }
+    </style>
+  </head>
+  <body class="relative min-h-screen overflow-x-hidden text-slate-900">
+    <div class="absolute inset-0 -z-10">
+      <div
+        class="absolute inset-0"
+        style="
+          background: radial-gradient(circle at top, rgba(255, 211, 110, 0.4), transparent 55%),
+            radial-gradient(circle at 20% 20%, rgba(138, 225, 209, 0.45), transparent 40%),
+            linear-gradient(160deg, #fff6e6 10%, #fef9f1 55%, #f6fbfb 100%);
+        "
+      ></div>
+      <div class="bg-blob" style="background: #ffb59a; width: 240px; height: 240px; top: -60px; left: -50px"></div>
+      <div class="bg-blob" style="background: #9ee8f5; width: 200px; height: 200px; top: 120px; right: -80px"></div>
+      <div class="bg-blob" style="background: #ffe7a6; width: 200px; height: 200px; bottom: -70px; left: 30%"></div>
+    </div>
+
+    <main class="mx-auto max-w-md px-5 pt-6 pb-24">
+      <header class="flex items-start justify-between gap-4 reveal">
+        <div class="flex items-center gap-3">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--ink)] text-white shadow-lg">
+            🐛
+          </div>
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.25em] text-slate-500">Mobile Web App</p>
+            <h1 class="text-2xl font-bold text-[var(--ink)]">Debug 🐛</h1>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500">怕蟲模式</p>
+          <button
+            id="mode-toggle"
+            type="button"
+            aria-pressed="false"
+            class="relative mt-2 inline-flex h-11 w-36 items-center rounded-full border border-white/70 bg-amber-400 px-3 shadow-lg transition"
+          >
+            <span id="mode-text" class="absolute left-1/2 -translate-x-1/2 text-xs font-semibold">真實模式</span>
+            <span
+              id="mode-thumb"
+              class="absolute left-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white text-base shadow"
+              aria-hidden="true"
+            >
+              🧪
+            </span>
+          </button>
+          <p id="mode-hint" class="mt-1 text-[11px] text-slate-600">目前：真實模式</p>
+        </div>
+      </header>
+
+      <section class="mt-8 reveal" style="animation-delay: 0.1s">
+        <div class="glass floaty rounded-3xl border border-white/70 p-5 shadow-xl">
+          <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500">模擬影像辨識</p>
+          <button
+            id="camera-button"
+            type="button"
+            class="mt-4 w-full rounded-2xl bg-gradient-to-br from-[#1f6d73] via-[#2a9d8f] to-[#8ae1d1] px-5 py-6 text-white shadow-xl transition hover:scale-[1.01] active:scale-[0.99]"
+          >
+            <div class="flex items-center justify-center gap-3 text-lg font-semibold">
+              <span class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/20">
+                <svg
+                  width="28"
+                  height="28"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M5 7.5H7.4L8.6 5.5H15.4L16.6 7.5H19C20.1 7.5 21 8.4 21 9.5V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V9.5C3 8.4 3.9 7.5 5 7.5Z"
+                    stroke="white"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <circle cx="12" cy="13" r="3.5" stroke="white" stroke-width="1.5" />
+                </svg>
+              </span>
+              相機辨識
+            </div>
+            <p id="camera-button-text" class="mt-2 text-sm text-white/90">點擊啟動辨識流程</p>
+          </button>
+
+          <video
+            id="webcam"
+            class="mt-4 w-full rounded-2xl border border-white/70 bg-slate-900/10"
+            autoplay
+            muted
+            playsinline
+            aria-label="Webcam preview"
+          ></video>
+
+          <div class="mt-4 rounded-2xl border border-white/70 bg-white/70 px-4 py-3">
+            <div class="flex items-center justify-between gap-3">
+              <p class="text-xs uppercase tracking-[0.2em] text-slate-500">即時偵測狀態</p>
+              <span id="detection-dot" class="h-2.5 w-2.5 rounded-full bg-slate-300"></span>
+            </div>
+            <p id="detection-status" class="mt-2 text-sm font-semibold text-slate-700">尚未開始偵測</p>
+            <p id="detection-score" class="mt-1 text-xs text-slate-500">等待鏡頭與卡片對準</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="result-section" class="mt-8 hidden">
+        <div class="glass rounded-3xl border border-white/70 p-5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-[var(--ink)]">辨識結果</h2>
+            <span class="text-[11px] uppercase tracking-[0.2em] text-slate-500">預留</span>
+          </div>
+          <div class="mt-4 grid gap-4">
+            <div class="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-4">
+              <img
+                id="insect-image"
+                src=""
+                alt="昆蟲圖片預留"
+                class="mx-auto h-32 w-32 object-contain opacity-60"
+              />
+              <p class="mt-3 text-center text-xs text-slate-500">昆蟲圖片展示區</p>
+            </div>
+            <div class="rounded-2xl bg-white/70 p-4">
+              <p class="text-sm text-slate-500">昆蟲名稱</p>
+              <p id="insect-name" class="mt-1 text-lg font-semibold text-[var(--ink)]">--</p>
+              <p class="mt-3 text-sm text-slate-500">解決方案</p>
+              <p id="insect-solution" class="mt-1 text-sm leading-relaxed text-slate-700">--</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-8 reveal" style="animation-delay: 0.2s">
+        <div class="rounded-3xl border border-white/70 bg-white/70 p-5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-[var(--ink)]">專家與社群建議</h2>
+            <span class="text-[11px] uppercase tracking-[0.2em] text-slate-500">Forum</span>
+          </div>
+          <div class="mt-4 rounded-2xl border border-white/80 bg-white/80 p-4">
+            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">帳號狀態</p>
+            <p id="auth-status" class="mt-2 text-sm text-slate-700">尚未登入</p>
+            <div id="auth-form" class="mt-3 grid gap-2">
+              <input
+                id="auth-email"
+                type="email"
+                placeholder="Email"
+                class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+              />
+              <input
+                id="auth-password"
+                type="password"
+                placeholder="Password"
+                class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+              />
+              <button
+                id="login-button"
+                type="button"
+                class="rounded-xl bg-[var(--ink)] px-3 py-2 text-sm font-semibold text-white"
+              >
+                登入
+              </button>
+              <a
+                href="register.html"
+                class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-center text-sm font-semibold text-slate-700"
+              >
+                註冊
+              </a>
+            </div>
+            <div id="auth-user" class="mt-3 hidden items-center justify-between gap-2">
+              <p id="auth-user-email" class="text-sm text-slate-700">已登入</p>
+              <button
+                id="logout-button"
+                type="button"
+                class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
+              >
+                登出
+              </button>
+            </div>
+          </div>
+          <ul id="forum-list" class="mt-4 min-h-[80px] space-y-3 text-sm text-slate-700"></ul>
+          <form id="post-form" class="mt-4 grid gap-2">
+            <textarea
+              id="post-content"
+              rows="3"
+              placeholder="分享你的建議或心得..."
+              class="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm"
+            ></textarea>
+            <button
+              id="post-submit"
+              type="submit"
+              class="rounded-2xl bg-[var(--sea)] px-3 py-2 text-sm font-semibold text-white"
+            >
+              送出留言
+            </button>
+          </form>
+          <p class="mt-3 text-xs text-slate-500">（待後續串接討論內容）</p>
+        </div>
+      </section>
+
+      <footer class="mt-10 text-center text-[11px] text-slate-500">Debug Prototype • 2026</footer>
+    </main>
+
+    <script>
+      const APP_CONFIG = window.APP_CONFIG || {};
+      const detectionBaseImages = APP_CONFIG.DETECTION_BASE_IMAGES || {
+        mosquito: "./Photo/mosquito.jfif",
+        moth: "./Photo/moth.jpg",
+        fly: "./Photo/fly.jfif",
+        fruitfly: "./Photo/fruitfly.jfif",
+        mothfly: "./Photo/mothfly.jfif",
+      };
+
+      const SUPABASE_URL = APP_CONFIG.SUPABASE_URL || "";
+      const SUPABASE_KEY = APP_CONFIG.SUPABASE_KEY || "";
+      if (!SUPABASE_URL || !SUPABASE_KEY) {
+        console.error("Missing Supabase config: check config.js");
+      }
+      const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+      const modeToggle = document.getElementById("mode-toggle");
+      const modeText = document.getElementById("mode-text");
+      const modeHint = document.getElementById("mode-hint");
+      const modeThumb = document.getElementById("mode-thumb");
+      const resultSection = document.getElementById("result-section");
+      const insectImage = document.getElementById("insect-image");
+      const insectName = document.getElementById("insect-name");
+      const insectSolution = document.getElementById("insect-solution");
+      const forumList = document.getElementById("forum-list");
+      const authStatus = document.getElementById("auth-status");
+      const authForm = document.getElementById("auth-form");
+      const authEmail = document.getElementById("auth-email");
+      const authPassword = document.getElementById("auth-password");
+      const loginButton = document.getElementById("login-button");
+      const authUser = document.getElementById("auth-user");
+      const authUserEmail = document.getElementById("auth-user-email");
+      const logoutButton = document.getElementById("logout-button");
+      const postForm = document.getElementById("post-form");
+      const postContent = document.getElementById("post-content");
+      const postSubmit = document.getElementById("post-submit");
+      const cameraButton = document.getElementById("camera-button");
+      const cameraButtonText = document.getElementById("camera-button-text");
+      const webcam = document.getElementById("webcam");
+      const detectionStatus = document.getElementById("detection-status");
+      const detectionScore = document.getElementById("detection-score");
+      const detectionDot = document.getElementById("detection-dot");
+
+      const MAX_KEYPOINTS = 3000;
+      const YAPE_THRESHOLD = 12;
+      const MATCH_THRESHOLD = 18;
+      const MATCH_STREAK_TARGET = 1;
+      const MATCH_DISTANCE = 62;
+      const MATCH_RATIO = 0.88;
+      const FRAME_TARGET_WIDTH = 400;
+      const TEMPLATE_SIZE = 128;
+      const HASH_SIZE = 16;
+      const DEBUG_DETECTION = true;
+      // weights must sum to 1 for normalized scoring
+      const HASH_WEIGHT = 0.35;
+      const TEMPLATE_WEIGHT = 0.25;
+      const ORB_WEIGHT = 0.4;
+      const CROP_VARIANTS = [
+        { x: 0.5, y: 0.5, size: 0.9 },
+        { x: 0.5, y: 0.5, size: 0.78 },
+        { x: 0.5, y: 0.5, size: 0.62 },
+        { x: 0.25, y: 0.25, size: 0.56 },
+        { x: 0.75, y: 0.25, size: 0.56 },
+        { x: 0.25, y: 0.75, size: 0.56 },
+        { x: 0.75, y: 0.75, size: 0.56 },
+      ];
+      const COMBINED_SCORE_THRESHOLD = 0.55;
+      const DEMO_RESULT_FRAME_COUNT = 3;
+      const STABLE_SAME_RESULT_FRAMES = 3;
+      const MIN_SCORE_GAP = 0.06;
+
+      const bitCountTable = new Uint8Array(256);
+      for (let i = 0; i < bitCountTable.length; i += 1) {
+        let value = i;
+        let count = 0;
+        while (value) {
+          value &= value - 1;
+          count += 1;
+        }
+        bitCountTable[i] = count;
+      }
+
+      const bugDatabase = [
+        {
+          id: "mosquito",
+          name: "蚊子",
+          realImg: "./Photo/mosquito.jfif",
+          cartoonImg: "./Photo/mosquito cartoon.jpg",
+          solution: "清除積水容器、加裝紗窗或蚊帳，並在傍晚時段使用防蚊液加強保護。",
+        },
+        {
+          id: "moth",
+          name: "蛾",
+          realImg: "./Photo/moth.jpg",
+          cartoonImg: "./Photo/moth cartoon.jfif",
+          solution: "夜間減少強光吸引、關閉不用燈源，衣櫃放置防蟲片並定期整理。",
+        },
+        {
+          id: "fly",
+          name: "蒼蠅",
+          realImg: "./Photo/fly.jfif",
+          cartoonImg: "./Photo/fly cartoon.jpg",
+          solution: "廚餘密封、垃圾桶勤清潔，搭配捕蠅紙或誘捕器降低活動量。",
+        },
+        {
+          id: "fruitfly",
+          name: "果蠅",
+          realImg: "./Photo/fruitfly.jfif",
+          cartoonImg: "./Photo/fruit cartoon.png",
+          solution: "水果冷藏保存、清除發酵殘渣，用蘋果醋加一滴洗碗精誘捕。",
+        },
+        {
+          id: "mothfly",
+          name: "蛾蜹",
+          realImg: "./Photo/mothfly.jfif",
+          cartoonImg: "./Photo/mothfly cartoon.png",
+          solution: "清理排水孔黏膜與濾網，定期倒入熱水或酵素清潔，保持乾燥通風。",
+        },
+      ];
+
+      const bugMapByName = new Map(bugDatabase.map((bug) => [bug.name, bug]));
+      const getCurrentUserDisplayName = (user) => user?.user_metadata?.full_name || user?.email || "已登入";
+      const bugButtons = Array.from(document.querySelectorAll("div.grid button"));
+      const detectionPatterns = bugDatabase.map((bug) => ({
+        bug,
+        ready: false,
+        image: null,
+        width: 0,
+        height: 0,
+        corners: [],
+        descriptors: null,
+        count: 0,
+        templateGray: null,
+        hash: null,
+      }));
+
+      const modes = {
+        real: {
+          label: "真實模式",
+          hint: "目前：真實模式",
+          buttonClasses: ["bg-amber-400", "text-slate-900"],
+          thumbClasses: ["left-1", "bg-white", "text-slate-900"],
+          thumbOpposite: "right-1",
+          icon: "🧪",
+        },
+        cartoon: {
+          label: "卡通模式",
+          hint: "目前：卡通模式",
+          buttonClasses: ["bg-sky-400", "text-slate-900"],
+          thumbClasses: ["right-1", "bg-[var(--storm)]", "text-white"],
+          thumbOpposite: "left-1",
+          icon: "🎈",
+        },
+      };
+
+      let currentMode = "real";
+      let selectedBug = null;
+      let processingActive = false;
+      let matchLocked = false;
+      let matchStreak = 0;
+      let lastAutoResultId = null;
+      let processedFrameCount = 0;
+      let stableResultId = null;
+      let stableResultStreak = 0;
+      let webcamStream = null;
+      let currentUser = null;
+
+      const patternState = {
+        ready: false,
+        width: 0,
+        height: 0,
+        corners: [],
+        descriptors: null,
+        count: 0,
+      };
+
+      const frameState = {
+        width: 0,
+        height: 0,
+        canvas: document.createElement("canvas"),
+        ctx: null,
+        gray: null,
+        corners: [],
+        descriptors: null,
+        templateGray: null,
+        hash: null,
+      };
+
+      frameState.ctx = frameState.canvas.getContext("2d", { willReadFrequently: true });
+
+      const getBugImageByMode = (bug) =>
+        currentMode === "real" ? bug.realImg : bug.cartoonImg;
+
+      const findDetectionPattern = (bugId) => detectionPatterns.find((pattern) => pattern.bug.id === bugId) || null;
+
+      const setDetectionState = (state, scoreText) => {
+        if (!detectionStatus || !detectionDot || !detectionScore) {
+          return;
+        }
+
+        const states = {
+          idle: {
+            label: "尚未開始偵測",
+            dotClass: "bg-slate-300",
+            statusClass: "text-slate-700",
+          },
+          searching: {
+            label: "正在找尋昆蟲卡片",
+            dotClass: "bg-amber-400",
+            statusClass: "text-amber-700",
+          },
+          tracking: {
+            label: "找到相似卡片，持續確認中",
+            dotClass: "bg-emerald-500",
+            statusClass: "text-emerald-700",
+          },
+          match: {
+            label: "已辨識到昆蟲卡片",
+            dotClass: "bg-red-500",
+            statusClass: "text-red-700",
+          },
+        };
+
+        const config = states[state] || states.idle;
+        detectionStatus.textContent = config.label;
+        detectionScore.textContent = scoreText || "等待鏡頭與卡片對準";
+        detectionStatus.className = `mt-2 text-sm font-semibold ${config.statusClass}`;
+        detectionDot.className = `h-2.5 w-2.5 rounded-full ${config.dotClass}`;
+      };
+
+      const updateResultImage = () => {
+        if (!selectedBug) {
+          return;
+        }
+
+        insectImage.src = getBugImageByMode(selectedBug);
+        insectImage.alt = `${selectedBug.name} ${currentMode === "real" ? "真實模式" : "卡通模式"}`;
+      };
+
+      const showResult = (bug) => {
+        selectedBug = bug;
+        resultSection.classList.remove("hidden");
+        insectName.textContent = bug.name;
+        insectSolution.textContent = bug.solution;
+        updateResultImage();
+        fetchForumPosts(bug.id);
+        setDetectionState("match", `命中 ${bug.name}，已顯示解決方案`);
+        lastAutoResultId = bug.id;
+        stopCamera();
+      };
+
+      const stopCamera = () => {
+        processingActive = false;
+        matchLocked = true;
+        matchStreak = 0;
+        stableResultId = null;
+        stableResultStreak = 0;
+
+        if (webcamStream) {
+          webcamStream.getTracks().forEach((track) => track.stop());
+          webcamStream = null;
+        }
+
+        if (webcam) {
+          webcam.srcObject = null;
+        }
+
+        cameraButton.disabled = false;
+        cameraButtonText.textContent = "重新啟動辨識";
+      };
+
+      const updateAuthUI = (user) => {
+        currentUser = user;
+
+        if (user) {
+          authStatus.textContent = "已登入";
+          authForm.classList.add("hidden");
+          authUser.classList.remove("hidden");
+          authUser.classList.add("flex");
+          authUserEmail.textContent = `${getCurrentUserDisplayName(user)} · ${user.email || "已登入"}`;
+          postSubmit.disabled = false;
+          postSubmit.classList.remove("opacity-50", "cursor-not-allowed");
+        } else {
+          authStatus.textContent = "尚未登入";
+          authForm.classList.remove("hidden");
+          authUser.classList.add("hidden");
+          authUser.classList.remove("flex");
+          postSubmit.disabled = true;
+          postSubmit.classList.add("opacity-50", "cursor-not-allowed");
+        }
+
+        if (selectedBug) {
+          fetchForumPosts(selectedBug.id);
+        }
+      };
+
+      const requireAuth = () => {
+        if (currentUser) {
+          return true;
+        }
+
+        alert("請先登入才能發文或按讚。");
+        return false;
+      };
+
+      const renderForumPosts = (posts, votedPostIds = new Set()) => {
+        forumList.innerHTML = "";
+
+        if (!posts || posts.length === 0) {
+          const emptyItem = document.createElement("li");
+          emptyItem.className = "rounded-2xl border border-dashed border-slate-200 bg-white/60 p-4 text-sm text-slate-500";
+          emptyItem.textContent = "目前沒有留言，成為第一個分享的人吧。";
+          forumList.appendChild(emptyItem);
+          return;
+        }
+
+        posts.forEach((post) => {
+          const item = document.createElement("li");
+          item.className = "rounded-2xl border border-white/80 bg-white/80 p-4 shadow-sm";
+
+          const content = document.createElement("p");
+          content.className = "text-sm text-slate-700";
+          content.textContent = post.content || "（內容空白）";
+
+          const author = document.createElement("p");
+          author.className = "mt-1 text-[11px] uppercase tracking-[0.18em] text-slate-400";
+          const authorName = post.author_name || (post.author_id && currentUser && post.author_id === currentUser.id ? getCurrentUserDisplayName(currentUser) : "會員");
+          author.textContent = post.author_id && currentUser && post.author_id === currentUser.id ? `作者：你 · ${authorName}` : `作者：${authorName}`;
+
+          const footer = document.createElement("div");
+          footer.className = "mt-3 flex items-center justify-between text-xs text-slate-500";
+
+          const votes = document.createElement("span");
+          votes.textContent = `投票數：${post.votes ?? 0}`;
+
+          const voteButton = document.createElement("button");
+          voteButton.type = "button";
+          voteButton.className =
+            "rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 transition hover:-translate-y-0.5";
+          voteButton.textContent = votedPostIds.has(post.id) ? "已投票" : "👍 認同";
+          voteButton.setAttribute("data-post-id", post.id);
+          if (!currentUser || votedPostIds.has(post.id)) {
+            voteButton.disabled = true;
+            voteButton.classList.add("opacity-50", "cursor-not-allowed");
+          }
+
+          footer.appendChild(votes);
+          footer.appendChild(voteButton);
+
+          item.appendChild(content);
+          item.appendChild(author);
+          item.appendChild(footer);
+          forumList.appendChild(item);
+        });
+      };
+
+      const fetchForumPosts = async (bugId) => {
+        if (!bugId) {
+          return;
+        }
+
+        const { data, error } = await supabaseClient
+          .from("forum_posts")
+          .select("id, content, votes, bug_id, author_id, author_name, created_at")
+          .eq("bug_id", bugId)
+          .order("votes", { ascending: false });
+
+        if (error) {
+          console.error("Failed to fetch forum posts:", error);
+          return;
+        }
+
+        let votedPostIds = new Set();
+        if (currentUser && data?.length) {
+          const postIds = data.map((post) => post.id);
+          const { data: voteRows, error: voteError } = await supabaseClient
+            .from("forum_post_votes")
+            .select("post_id")
+            .eq("voter_id", currentUser.id)
+            .in("post_id", postIds);
+
+          if (voteError) {
+            console.error("Failed to fetch my votes:", voteError);
+          } else {
+            votedPostIds = new Set((voteRows || []).map((row) => row.post_id));
+          }
+        }
+
+        renderForumPosts(data, votedPostIds);
+      };
+
+      const upvotePost = async (postId, bugId) => {
+        if (!postId) {
+          return;
+        }
+
+        if (!requireAuth()) {
+          return;
+        }
+
+        const { error } = await supabaseClient.from("forum_post_votes").insert({
+          post_id: Number(postId),
+          voter_id: currentUser.id,
+        });
+
+        if (error) {
+          console.error("Failed to upvote post:", error);
+          if (error.code === "23505") {
+            alert("你已經投過這一票了。每人每則留言只能一票。");
+          }
+          return;
+        }
+
+        fetchForumPosts(bugId);
+      };
+
+      const applyMode = (mode) => {
+        const config = modes[mode];
+        const removeMode = mode === "real" ? modes.cartoon : modes.real;
+
+        modeToggle.classList.remove(...removeMode.buttonClasses);
+        modeToggle.classList.add(...config.buttonClasses);
+
+        modeThumb.classList.remove(...removeMode.thumbClasses);
+        modeThumb.classList.add(...config.thumbClasses);
+        modeThumb.textContent = config.icon;
+
+        modeText.textContent = config.label;
+        modeHint.textContent = config.hint;
+
+        modeToggle.setAttribute("aria-pressed", mode === "cartoon");
+        currentMode = mode;
+        updateResultImage();
+      };
+
+      const hammingDistance = (descA, indexA, descB, indexB) => {
+        const baseA = indexA * 32;
+        const baseB = indexB * 32;
+        let dist = 0;
+        for (let i = 0; i < 32; i += 1) {
+          dist += bitCountTable[descA.data[baseA + i] ^ descB.data[baseB + i]];
+        }
+        return dist;
+      };
+
+      const countMatches = (patternDesc, patternCount, frameDesc, frameCount) => {
+        if (patternCount === 0 || frameCount === 0) {
+          return 0;
+        }
+
+        let matches = 0;
+        for (let i = 0; i < patternCount; i += 1) {
+          let best = 256;
+          let secondBest = 256;
+
+          for (let j = 0; j < frameCount; j += 1) {
+            const dist = hammingDistance(patternDesc, i, frameDesc, j);
+            if (dist < best) {
+              secondBest = best;
+              best = dist;
+            } else if (dist < secondBest) {
+              secondBest = dist;
+            }
+          }
+
+          if (best < MATCH_DISTANCE && best < secondBest * MATCH_RATIO) {
+            matches += 1;
+          }
+        }
+
+        return matches;
+      };
+
+      const buildTemplateGray = (image) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = TEMPLATE_SIZE;
+        canvas.height = TEMPLATE_SIZE;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        ctx.drawImage(image, 0, 0, TEMPLATE_SIZE, TEMPLATE_SIZE);
+        const imageData = ctx.getImageData(0, 0, TEMPLATE_SIZE, TEMPLATE_SIZE);
+        const gray = new jsfeat.matrix_t(TEMPLATE_SIZE, TEMPLATE_SIZE, jsfeat.U8_t | jsfeat.C1_t);
+        jsfeat.imgproc.grayscale(imageData.data, TEMPLATE_SIZE, TEMPLATE_SIZE, gray);
+        return gray;
+      };
+
+      const scoreTemplateSimilarity = (patternGray, frameGray) => {
+        if (!patternGray || !frameGray) {
+          return 0;
+        }
+
+        let diffSum = 0;
+        const total = TEMPLATE_SIZE * TEMPLATE_SIZE;
+        for (let i = 0; i < total; i += 1) {
+          diffSum += Math.abs(patternGray.data[i] - frameGray.data[i]);
+        }
+
+        return 1 - diffSum / (255 * total);
+      };
+
+      const buildAverageHash = (source, sourceWidth, sourceHeight, cropSpec = null) => {
+        const fallbackSize = Math.floor(Math.min(sourceWidth, sourceHeight) * 0.72);
+        const cropSize = Math.max(1, Math.floor(Math.min(sourceWidth, sourceHeight) * (cropSpec?.size ?? 0.72)));
+        const cropX = Math.max(0, Math.floor((sourceWidth - cropSize) * (cropSpec?.x ?? 0.5)));
+        const cropY = Math.max(0, Math.floor((sourceHeight - cropSize) * (cropSpec?.y ?? 0.5)));
+
+        const canvas = document.createElement("canvas");
+        canvas.width = HASH_SIZE;
+        canvas.height = HASH_SIZE;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        ctx.drawImage(source, cropX, cropY, cropSize || fallbackSize, cropSize || fallbackSize, 0, 0, HASH_SIZE, HASH_SIZE);
+
+        const imageData = ctx.getImageData(0, 0, HASH_SIZE, HASH_SIZE);
+        const gray = new jsfeat.matrix_t(HASH_SIZE, HASH_SIZE, jsfeat.U8_t | jsfeat.C1_t);
+        jsfeat.imgproc.grayscale(imageData.data, HASH_SIZE, HASH_SIZE, gray);
+
+        let sum = 0;
+        for (let i = 0; i < HASH_SIZE * HASH_SIZE; i += 1) {
+          sum += gray.data[i];
+        }
+        const average = sum / (HASH_SIZE * HASH_SIZE);
+
+        const hashBits = new Array(HASH_SIZE * HASH_SIZE);
+        for (let i = 0; i < HASH_SIZE * HASH_SIZE; i += 1) {
+          hashBits[i] = gray.data[i] >= average ? 1 : 0;
+        }
+
+        return hashBits;
+      };
+
+      const buildPatternVariant = (source, cropSpec) => {
+        const actualWidth = source.width || source.naturalWidth || 0;
+        const actualHeight = source.height || source.naturalHeight || 0;
+        const cropSize = Math.max(1, Math.floor(Math.min(actualWidth, actualHeight) * (cropSpec?.size ?? 0.72)));
+        const cropX = Math.max(0, Math.floor((actualWidth - cropSize) * (cropSpec?.x ?? 0.5)));
+        const cropY = Math.max(0, Math.floor((actualHeight - cropSize) * (cropSpec?.y ?? 0.5)));
+
+        const cropCanvas = document.createElement("canvas");
+        cropCanvas.width = cropSize;
+        cropCanvas.height = cropSize;
+        const cropCtx = cropCanvas.getContext("2d", { willReadFrequently: true });
+        cropCtx.drawImage(source, cropX, cropY, cropSize, cropSize, 0, 0, cropSize, cropSize);
+
+        const cropImageData = cropCtx.getImageData(0, 0, cropSize, cropSize);
+        const gray = new jsfeat.matrix_t(cropSize, cropSize, jsfeat.U8_t | jsfeat.C1_t);
+        jsfeat.imgproc.grayscale(cropImageData.data, cropSize, cropSize, gray);
+
+        const corners = new Array(MAX_KEYPOINTS);
+        for (let i = 0; i < MAX_KEYPOINTS; i += 1) {
+          corners[i] = new jsfeat.keypoint_t(0, 0, 0, 0);
+        }
+
+        const count = jsfeat.yape06.detect(gray, corners, YAPE_THRESHOLD);
+        const descriptors = new jsfeat.matrix_t(32, MAX_KEYPOINTS, jsfeat.U8_t | jsfeat.C1_t);
+        jsfeat.orb.describe(gray, corners, count, descriptors);
+
+        const templateCanvas = document.createElement("canvas");
+        templateCanvas.width = TEMPLATE_SIZE;
+        templateCanvas.height = TEMPLATE_SIZE;
+        const templateCtx = templateCanvas.getContext("2d", { willReadFrequently: true });
+        templateCtx.drawImage(cropCanvas, 0, 0, cropSize, cropSize, 0, 0, TEMPLATE_SIZE, TEMPLATE_SIZE);
+        const templateImageData = templateCtx.getImageData(0, 0, TEMPLATE_SIZE, TEMPLATE_SIZE);
+        const templateGray = new jsfeat.matrix_t(TEMPLATE_SIZE, TEMPLATE_SIZE, jsfeat.U8_t | jsfeat.C1_t);
+        jsfeat.imgproc.grayscale(templateImageData.data, TEMPLATE_SIZE, TEMPLATE_SIZE, templateGray);
+
+        return {
+          cropSpec,
+          templateGray,
+          hash: buildAverageHash(source, actualWidth, actualHeight, cropSpec),
+          corners,
+          descriptors,
+          count,
+        };
+      };
+
+      const compareAverageHash = (patternHash, frameHash) => {
+        if (!patternHash || !frameHash) {
+          return 0;
+        }
+
+        let same = 0;
+        for (let i = 0; i < patternHash.length; i += 1) {
+          if (patternHash[i] === frameHash[i]) {
+            same += 1;
+          }
+        }
+
+        return same / patternHash.length;
+      };
+
+      const buildFrameCandidates = (source, sourceWidth, sourceHeight) =>
+        CROP_VARIANTS.map((cropSpec) => {
+          const actualWidth = source.videoWidth || sourceWidth;
+          const actualHeight = source.videoHeight || sourceHeight;
+          const cropSize = Math.max(1, Math.floor(Math.min(actualWidth, actualHeight) * cropSpec.size));
+          const cropX = Math.max(0, Math.floor((actualWidth - cropSize) * cropSpec.x));
+          const cropY = Math.max(0, Math.floor((actualHeight - cropSize) * cropSpec.y));
+
+          return {
+            hash: buildAverageHash(source, actualWidth, actualHeight, cropSpec),
+            templateGray: (() => {
+              const canvas = document.createElement("canvas");
+              canvas.width = TEMPLATE_SIZE;
+              canvas.height = TEMPLATE_SIZE;
+              const ctx = canvas.getContext("2d", { willReadFrequently: true });
+              ctx.drawImage(
+                source,
+                cropX,
+                cropY,
+                cropSize,
+                cropSize,
+                0,
+                0,
+                TEMPLATE_SIZE,
+                TEMPLATE_SIZE
+              );
+              const imageData = ctx.getImageData(0, 0, TEMPLATE_SIZE, TEMPLATE_SIZE);
+              const gray = new jsfeat.matrix_t(TEMPLATE_SIZE, TEMPLATE_SIZE, jsfeat.U8_t | jsfeat.C1_t);
+              jsfeat.imgproc.grayscale(imageData.data, TEMPLATE_SIZE, TEMPLATE_SIZE, gray);
+              return gray;
+            })(),
+          };
+        });
+
+      const preparePattern = (pattern) => {
+        if (!pattern.image) {
+          return;
+        }
+
+        // Do not upscale small images; allow larger originals to be used for better templates
+        const maxSize = 260;
+        const scale = Math.min(1, maxSize / Math.max(pattern.image.width, pattern.image.height));
+        const width = Math.max(1, Math.round(pattern.image.width * scale));
+        const height = Math.max(1, Math.round(pattern.image.height * scale));
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        ctx.drawImage(pattern.image, 0, 0, width, height);
+
+        const imageData = ctx.getImageData(0, 0, width, height);
+        const gray = new jsfeat.matrix_t(width, height, jsfeat.U8_t | jsfeat.C1_t);
+        jsfeat.imgproc.grayscale(imageData.data, width, height, gray);
+
+        const corners = new Array(MAX_KEYPOINTS);
+        for (let i = 0; i < MAX_KEYPOINTS; i += 1) {
+          corners[i] = new jsfeat.keypoint_t(0, 0, 0, 0);
+        }
+
+        const count = jsfeat.yape06.detect(gray, corners, YAPE_THRESHOLD);
+        const descriptors = new jsfeat.matrix_t(32, MAX_KEYPOINTS, jsfeat.U8_t | jsfeat.C1_t);
+        jsfeat.orb.describe(gray, corners, count, descriptors);
+
+        pattern.variants = CROP_VARIANTS.map((cropSpec) => buildPatternVariant(pattern.image, cropSpec));
+        pattern.templateGray = pattern.variants[0]?.templateGray || buildTemplateGray(pattern.image);
+        pattern.hash = pattern.variants[0]?.hash || buildAverageHash(pattern.image, pattern.image.width, pattern.image.height);
+
+        pattern.ready = true;
+        pattern.width = width;
+        pattern.height = height;
+        pattern.corners = pattern.variants[0]?.corners || corners;
+        pattern.descriptors = pattern.variants[0]?.descriptors || descriptors;
+        pattern.count = pattern.variants[0]?.count || count;
+
+        if (DEBUG_DETECTION) {
+          console.log(`preparePattern:${pattern.bug.id} w=${width} h=${height} variants=${pattern.variants.length} kp=${count}`);
+        }
+      };
+
+      const loadDetectionPatterns = () => {
+        detectionPatterns.forEach((pattern) => {
+          const image = new Image();
+          //image.crossOrigin = "anonymous";
+          image.onload = () => preparePattern(pattern);
+          image.onerror = (error) => {
+            console.error(`Failed to load pattern image for ${pattern.bug.id}: src=${image.src}`, error);
+          };
+          image.src = detectionBaseImages[pattern.bug.id] || pattern.bug.realImg;
+          pattern.image = image;
+        });
+      };
+
+      loadDetectionPatterns();
+
+      // Ensure we can observe debug output in browser console
+      if (DEBUG_DETECTION) {
+        console.log("App initialized: DEBUG_DETECTION=", DEBUG_DETECTION);
+      }
+
+      const setupFrameState = (width, height) => {
+        frameState.width = width;
+        frameState.height = height;
+        frameState.canvas.width = width;
+        frameState.canvas.height = height;
+        frameState.gray = new jsfeat.matrix_t(width, height, jsfeat.U8_t | jsfeat.C1_t);
+        frameState.templateGray = new jsfeat.matrix_t(TEMPLATE_SIZE, TEMPLATE_SIZE, jsfeat.U8_t | jsfeat.C1_t);
+        frameState.hash = null;
+        frameState.candidates = [];
+        frameState.corners = new Array(MAX_KEYPOINTS);
+        for (let i = 0; i < MAX_KEYPOINTS; i += 1) {
+          frameState.corners[i] = new jsfeat.keypoint_t(0, 0, 0, 0);
+        }
+        frameState.descriptors = new jsfeat.matrix_t(32, MAX_KEYPOINTS, jsfeat.U8_t | jsfeat.C1_t);
+      };
+
+      const processFrame = () => {
+        if (!processingActive) {
+          requestAnimationFrame(processFrame);
+          return;
+        }
+
+        const readyPatterns = detectionPatterns.filter((pattern) => pattern.ready);
+        if (readyPatterns.length === 0) {
+          setDetectionState("searching", "基準圖尚未載入完成，請稍候");
+          requestAnimationFrame(processFrame);
+          return;
+        }
+
+        if (!frameState.gray) {
+          requestAnimationFrame(processFrame);
+          return;
+        }
+
+        // Ensure webcam has an active video frame before processing
+        if (!webcam || webcam.readyState < 2 || !webcam.videoWidth || !webcam.videoHeight) {
+          if (DEBUG_DETECTION) console.log('processFrame: webcam not ready', webcam && webcam.readyState, webcam && webcam.videoWidth);
+          requestAnimationFrame(processFrame);
+          return;
+        }
+
+        frameState.ctx.drawImage(webcam, 0, 0, frameState.width, frameState.height);
+        const imageData = frameState.ctx.getImageData(0, 0, frameState.width, frameState.height);
+        jsfeat.imgproc.grayscale(imageData.data, frameState.width, frameState.height, frameState.gray);
+
+        frameState.candidates = buildFrameCandidates(webcam, frameState.width, frameState.height);
+
+        const frameCount = jsfeat.yape06.detect(frameState.gray, frameState.corners, YAPE_THRESHOLD);
+        jsfeat.orb.describe(frameState.gray, frameState.corners, frameCount, frameState.descriptors);
+        processedFrameCount += 1;
+
+        // If too few keypoints found, skip matching to avoid false positives
+        if (frameCount < 12) {
+          if (DEBUG_DETECTION) console.log('processFrame: too few keypoints', frameCount);
+          setDetectionState('searching', `偵測到 ${frameCount} 個特徵點，請將卡片與鏡頭對準`);
+          requestAnimationFrame(processFrame);
+          return;
+        }
+
+        let bestMatch = null;
+        let bestMatchedCount = 0;
+        let bestRatio = 0;
+        let bestTemplateScore = 0;
+        let bestHashScore = 0;
+        let bestCombinedScore = 0;
+
+        readyPatterns.forEach((pattern) => {
+          let templateScore = 0;
+          let hashScore = 0;
+          let bestPatternCandidateScore = -1;
+          let bestCandidate = null;
+          let bestVariant = null;
+
+          pattern.variants.forEach((variant) => {
+            frameState.candidates.forEach((candidate) => {
+              const candidateTemplateScore = scoreTemplateSimilarity(variant.templateGray, candidate.templateGray);
+              const candidateHashScore = compareAverageHash(variant.hash, candidate.hash);
+
+              const candidateCombinedScore = candidateHashScore * HASH_WEIGHT + candidateTemplateScore * TEMPLATE_WEIGHT;
+
+              if (candidateCombinedScore > bestPatternCandidateScore) {
+                bestPatternCandidateScore = candidateCombinedScore;
+                templateScore = candidateTemplateScore;
+                hashScore = candidateHashScore;
+                bestCandidate = candidate;
+                bestVariant = variant;
+              }
+            });
+          });
+
+          const matchedCount = bestCandidate
+            ? countMatches(bestVariant.descriptors, bestVariant.count, frameState.descriptors, frameCount)
+            : 0;
+          const ratio = bestVariant && bestVariant.count > 0 ? matchedCount / bestVariant.count : 0;
+
+          // Combine relative ratio and absolute matched count
+          const absScore = Math.min(1, (matchedCount || 0) / 80); // ~80 matches => 1
+          const ratioScore = bestVariant && bestVariant.count > 0 ? matchedCount / bestVariant.count : 0;
+          // weight ratio higher to prefer agreement proportion, keep absScore to reward many matches
+          const matchScore = Math.min(1, 0.7 * ratioScore + 0.3 * absScore);
+
+          // normalized weighted average across hash/template/match
+          const finalCombinedScore = HASH_WEIGHT * (hashScore || 0) + TEMPLATE_WEIGHT * (templateScore || 0) + ORB_WEIGHT * matchScore;
+
+          if (DEBUG_DETECTION) {
+            console.log(
+              `detect:${pattern.bug.id} final=${finalCombinedScore.toFixed(3)} tmpl=${(templateScore||0).toFixed(3)} hash=${(hashScore||0).toFixed(3)} matches=${matchedCount} matchScore=${matchScore.toFixed(3)}`
+            );
+          }
+
+          if (
+            finalCombinedScore > bestCombinedScore ||
+            (Math.abs(finalCombinedScore - bestCombinedScore) < 0.0001 && matchedCount > bestMatchedCount)
+          ) {
+            bestMatch = pattern;
+            bestMatchedCount = matchedCount;
+            bestRatio = ratio;
+            bestTemplateScore = templateScore;
+            bestHashScore = hashScore;
+            bestCombinedScore = finalCombinedScore;
+          }
+        });
+
+        const scoreText = bestMatch
+          ? `最像 ${bestMatch.bug.name}，模板相似度 ${Math.round(bestTemplateScore * 100)}%，雜湊相似度 ${Math.round(bestHashScore * 100)}%，綜合分數 ${Math.round(bestCombinedScore * 100)}%`
+          : `偵測到 ${frameCount} 個特徵點，暫時無法判定`;
+
+        if (bestMatch) {
+          const confidencePass =
+            bestCombinedScore >= COMBINED_SCORE_THRESHOLD ||
+            bestHashScore >= 0.34 ||
+            bestTemplateScore >= 0.34;
+
+          const scoreGap = Math.max(0, bestCombinedScore - 0.15);
+          const stableCandidate = confidencePass && scoreGap >= MIN_SCORE_GAP;
+
+          if (stableCandidate) {
+            if (stableResultId === bestMatch.bug.id) {
+              stableResultStreak += 1;
+            } else {
+              stableResultId = bestMatch.bug.id;
+              stableResultStreak = 1;
+            }
+
+            matchStreak = stableResultStreak;
+            setDetectionState(stableResultStreak > 1 ? "tracking" : "searching", scoreText);
+          } else {
+            stableResultId = null;
+            stableResultStreak = 0;
+            matchStreak = 0;
+            setDetectionState("searching", scoreText);
+          }
+
+          if (!matchLocked && stableResultStreak >= STABLE_SAME_RESULT_FRAMES) {
+            matchLocked = true;
+            showResult(bestMatch.bug);
+          }
+
+          if (matchLocked && lastAutoResultId !== bestMatch.bug.id && stableResultStreak >= STABLE_SAME_RESULT_FRAMES) {
+            showResult(bestMatch.bug);
+          }
+        } else {
+          stableResultId = null;
+          stableResultStreak = 0;
+          matchStreak = 0;
+          setDetectionState("searching", scoreText);
+        }
+
+        requestAnimationFrame(processFrame);
+      };
+
+      const startCamera = async () => {
+        if (processingActive) {
+          return;
+        }
+
+        try {
+          cameraButton.disabled = true;
+          cameraButtonText.textContent = "相機啟動中...";
+          webcamStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: "environment" },
+              width: { ideal: 640 },
+              height: { ideal: 480 },
+              frameRate: { ideal: 24, max: 30 },
+            },
+            audio: false,
+          });
+          webcam.srcObject = webcamStream;
+
+          await new Promise((resolve) => {
+            if (webcam.readyState >= 2) {
+              resolve();
+              return;
+            }
+            webcam.onloadedmetadata = () => resolve();
+          });
+
+          const width = FRAME_TARGET_WIDTH;
+          const height = Math.max(
+            1,
+            Math.round((webcam.videoHeight / Math.max(1, webcam.videoWidth)) * width)
+          );
+          setupFrameState(width, height);
+          processingActive = true;
+          matchLocked = false;
+          matchStreak = 0;
+          lastAutoResultId = null;
+          processedFrameCount = 0;
+          stableResultId = null;
+          stableResultStreak = 0;
+          cameraButtonText.textContent = "相機已啟動";
+          setDetectionState("searching", "相機已啟動，正在比對卡片");
+          requestAnimationFrame(processFrame);
+        } catch (error) {
+          console.error("Failed to start camera:", error);
+          cameraButton.disabled = false;
+          cameraButtonText.textContent = "點擊啟動辨識流程";
+          setDetectionState("idle", "瀏覽器未授權相機，請點擊按鈕再試一次");
+        }
+      };
+
+      const explainPostRequirements = () => {
+        const requirements = [
+          !currentUser ? "請先登入。" : null,
+          !selectedBug ? "請先完成辨識，讓系統知道你要發哪一種昆蟲的留言。" : null,
+        ].filter(Boolean);
+
+        return requirements.length ? requirements.join("\n") : "";
+      };
+
+      modeToggle.addEventListener("click", () => {
+        applyMode(currentMode === "real" ? "cartoon" : "real");
+      });
+
+      cameraButton.addEventListener("click", startCamera);
+
+      loginButton.addEventListener("click", async () => {
+        const email = authEmail.value.trim();
+        const password = authPassword.value.trim();
+        if (!email || !password) {
+          alert("請輸入 Email 與密碼。");
+          return;
+        }
+
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) {
+          console.error("Login failed:", error);
+          alert("登入失敗，請確認帳密。");
+          return;
+        }
+
+        updateAuthUI(data.user);
+      });
+
+      logoutButton.addEventListener("click", async () => {
+        const { error } = await supabaseClient.auth.signOut();
+        if (error) {
+          console.error("Logout failed:", error);
+          return;
+        }
+
+        updateAuthUI(null);
+      });
+
+      forumList.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-post-id]");
+        if (!button || !selectedBug) {
+          return;
+        }
+
+        if (!requireAuth()) {
+          return;
+        }
+
+        const postId = button.getAttribute("data-post-id");
+        upvotePost(postId, selectedBug.id);
+      });
+
+      postForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!requireAuth()) {
+          return;
+        }
+
+        if (!selectedBug) {
+          alert("請先完成辨識再發文。\n\n目前無法發文的原因：\n" + explainPostRequirements());
+          return;
+        }
+
+        const content = postContent.value.trim();
+        if (!content) {
+          alert("請輸入留言內容。");
+          return;
+        }
+
+        const { error } = await supabaseClient.from("forum_posts").insert({
+          bug_id: selectedBug.id,
+          author_id: currentUser.id,
+          author_name: getCurrentUserDisplayName(currentUser),
+          content,
+          votes: 0,
+        });
+
+        if (error) {
+          console.error("Failed to create post:", error);
+          alert(`發文失敗：${error.message || "未知錯誤"}`);
+          return;
+        }
+
+        postContent.value = "";
+        fetchForumPosts(selectedBug.id);
+      });
+
+      bugButtons.forEach((button) => {
+        if (button.id === "camera-button") {
+          return;
+        }
+
+        button.addEventListener("click", () => {
+          const label = button.textContent.trim();
+          const bug = bugMapByName.get(label);
+          if (!bug) {
+            return;
+          }
+
+          showResult(bug);
+        });
+      });
+
+      applyMode(currentMode);
+      setDetectionState("idle");
+
+      supabaseClient.auth.getSession().then(({ data, error }) => {
+        if (error) {
+          console.error("Failed to get session:", error);
+          return;
+        }
+        updateAuthUI(data.session?.user ?? null);
+      });
+
+      supabaseClient.auth.onAuthStateChange((_event, session) => {
+        updateAuthUI(session?.user ?? null);
+      });
+    </script>
+  </body>
+</html>

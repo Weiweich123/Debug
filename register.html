@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Debug 🐛 - 註冊</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./config.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      body {
+        font-family: "Space Grotesk", "Noto Sans TC", sans-serif;
+      }
+
+      .glass {
+        background: rgba(255, 255, 255, 0.78);
+        backdrop-filter: blur(14px);
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-[linear-gradient(160deg,#fff6e6_0%,#f7fbfb_52%,#eef7f6_100%)] text-slate-900">
+    <main class="mx-auto flex min-h-screen max-w-md items-center px-5 py-8">
+      <section class="w-full">
+        <div class="mb-5 flex items-center gap-3">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#102a2e] text-white shadow-lg">🐛</div>
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.25em] text-slate-500">Debug Prototype</p>
+            <h1 class="text-2xl font-bold text-[#102a2e]">建立帳號</h1>
+          </div>
+        </div>
+
+        <div class="glass rounded-3xl border border-white/70 p-5 shadow-xl">
+          <p class="text-sm text-slate-600">請填入姓名與帳號資料完成註冊。</p>
+
+          <form id="register-form" class="mt-5 grid gap-3">
+            <div>
+              <label for="full-name" class="mb-1 block text-sm font-medium text-slate-700">姓名</label>
+              <input id="full-name" type="text" autocomplete="name" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#2a9d8f]" placeholder="例如：王小明" />
+            </div>
+
+            <div>
+              <label for="email" class="mb-1 block text-sm font-medium text-slate-700">Email</label>
+              <input id="email" type="email" autocomplete="email" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#2a9d8f]" placeholder="name@example.com" />
+            </div>
+
+            <div>
+              <label for="password" class="mb-1 block text-sm font-medium text-slate-700">密碼</label>
+              <input id="password" type="password" autocomplete="new-password" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#2a9d8f]" placeholder="至少 6 碼" />
+            </div>
+
+            <div>
+              <label for="confirm-password" class="mb-1 block text-sm font-medium text-slate-700">確認密碼</label>
+              <input id="confirm-password" type="password" autocomplete="new-password" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#2a9d8f]" placeholder="再次輸入密碼" />
+            </div>
+
+            <button id="submit-button" type="submit" class="mt-2 rounded-2xl bg-[#102a2e] px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:opacity-95">註冊</button>
+            <p id="message" class="min-h-[1.5rem] text-sm text-slate-600"></p>
+          </form>
+
+          <div class="mt-4 flex items-center justify-between text-sm">
+            <a href="index.html" class="font-semibold text-[#2a9d8f] hover:underline">返回登入頁</a>
+            <span class="text-slate-400">Supabase Auth</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const APP_CONFIG = window.APP_CONFIG || {};
+      const SUPABASE_URL = APP_CONFIG.SUPABASE_URL || "";
+      const SUPABASE_KEY = APP_CONFIG.SUPABASE_KEY || "";
+      const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+      const form = document.getElementById("register-form");
+      const fullNameInput = document.getElementById("full-name");
+      const emailInput = document.getElementById("email");
+      const passwordInput = document.getElementById("password");
+      const confirmPasswordInput = document.getElementById("confirm-password");
+      const submitButton = document.getElementById("submit-button");
+      const message = document.getElementById("message");
+
+      const setMessage = (text, isError = false) => {
+        message.textContent = text;
+        message.className = isError ? "min-h-[1.5rem] text-sm text-red-600" : "min-h-[1.5rem] text-sm text-slate-600";
+      };
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const fullName = fullNameInput.value.trim();
+        const email = emailInput.value.trim();
+        const password = passwordInput.value.trim();
+        const confirmPassword = confirmPasswordInput.value.trim();
+
+        if (!fullName || !email || !password || !confirmPassword) {
+          setMessage("請把姓名、Email、密碼都填完整。", true);
+          return;
+        }
+
+        if (password !== confirmPassword) {
+          setMessage("兩次輸入的密碼不一致。", true);
+          return;
+        }
+
+        if (password.length < 6) {
+          setMessage("密碼至少需要 6 碼。", true);
+          return;
+        }
+
+        submitButton.disabled = true;
+        setMessage("註冊中，請稍候...");
+
+        const { data, error } = await supabaseClient.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName,
+            },
+          },
+        });
+
+        if (error) {
+          console.error("Register failed:", error);
+          submitButton.disabled = false;
+          setMessage(error.message || "註冊失敗，請稍後再試。", true);
+          return;
+        }
+
+        submitButton.disabled = false;
+
+        if (data.user) {
+          const needsEmailConfirmation = !data.session;
+          setMessage(
+            needsEmailConfirmation
+              ? "註冊成功，請到信箱完成驗證後再登入。"
+              : "註冊成功，正在登入中..."
+          );
+
+          if (!needsEmailConfirmation) {
+            window.location.href = "index.html";
+          }
+        } else {
+          setMessage("註冊完成，但尚未取得使用者資料，請檢查 Supabase 設定。", true);
+        }
+      });
+    </script>
+  </body>
+</html>
