@@ -178,8 +178,8 @@ create policy "forum_posts_update_authenticated"
 on public.forum_posts
 for update
 to authenticated
-using (true)
-with check (true);
+using (author_id = auth.uid())
+with check (author_id = auth.uid());
 
 -- Optional: delete access for authenticated users
 drop policy if exists "forum_posts_delete_authenticated" on public.forum_posts;
